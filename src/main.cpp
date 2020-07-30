@@ -1,20 +1,43 @@
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
+#include "main_window.h"
+#include "env3d.h"
+
+#include <QApplication>
+#include <QSurfaceFormat>
+
+#include <QMainWindow>
+#include <QMenuBar>
+#include <QGridLayout>
+#include <QLabel>
+#include <QHBoxLayout>
+#include <QGridLayout>
+#include <QSizePolicy>
+
+#include <Qt3DCore/QEntity>
+#include <Qt3DRender/QCamera>
+#include <Qt3DRender/QCameraLens>
+#include <Qt3DCore/QTransform>
+#include <Qt3DCore/QAspectEngine>
+
+#include <Qt3DInput/QInputAspect>
+
+#include <Qt3DRender/QRenderAspect>
+#include <Qt3DExtras/QForwardRenderer>
+#include <Qt3DExtras/QPhongMaterial>
+#include <Qt3DExtras/QCylinderMesh>
+#include <Qt3DExtras/QSphereMesh>
+#include <Qt3DExtras/QTorusMesh>
+
+#include <QPropertyAnimation>
+
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QApplication app(argc, argv);
 
-    QGuiApplication app(argc, argv);
-
-    QQmlApplicationEngine engine;
-    const QUrl url(QStringLiteral("qrc:/main.qml"));
-    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
-                     &app, [url](QObject *obj, const QUrl &objUrl) {
-        if (!obj && url == objUrl)
-            QCoreApplication::exit(-1);
-    }, Qt::QueuedConnection);
-    engine.load(url);
-
+    Env3D *view = new Env3D();
+    MainWindow mainWindow(*view);
+    mainWindow.setCentralWidget(view);
+    mainWindow.showMaximized();
+    mainWindow.show();
     return app.exec();
 }

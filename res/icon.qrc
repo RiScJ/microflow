@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icon/pencil.svg</file>
+    </qresource>
+</RCC>

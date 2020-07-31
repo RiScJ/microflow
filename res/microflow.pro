@@ -16,24 +16,22 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 INCLUDEPATH += \
-        $$PWD/../inc/ \
-        $$PWD/../src/ \
-        $$PWD/../res/
+		$$PWD/../inc/ \
+		$$PWD/../src/ \
+		$$PWD/../res/
 
 SOURCES += \
-    ../src/entity_list.cpp \
-    ../src/env3d.cpp \
-    ../src/main.cpp \
-    ../src/main_window.cpp
+	../src/env3d.cpp \
+	../src/main.cpp \
+	../src/main_window.cpp
 
 HEADERS += \
-    ../inc/entity_list.h \
-    ../inc/env3d.h \
-    ../inc/main_window.h
+	../inc/env3d.h \
+	../inc/main_window.h
 
 RESOURCES += \
-    ../res/icon.qrc \
-    ../res/icons.qrc
+	../res/icon.qrc \
+	../res/icons.qrc
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

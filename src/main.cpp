@@ -11,6 +11,7 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QSizePolicy>
+#include <QObject>
 
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QCamera>
@@ -32,12 +33,15 @@
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
+	QApplication app(argc, argv);
 
-    Env3D *view = new Env3D();
-    MainWindow mainWindow(*view);
-    mainWindow.setCentralWidget(view);
-    mainWindow.showMaximized();
-    mainWindow.show();
-    return app.exec();
+	Env3D *view = new Env3D();
+	MainWindow mainWindow(*view);
+
+
+
+	mainWindow.setCentralWidget(view);
+	mainWindow.showMaximized();
+	mainWindow.show();
+	return app.exec();
 }

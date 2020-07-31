@@ -41,6 +41,7 @@ Qt3DRender::QCamera *Env3D::_camera = nullptr;
 QEntity *Env3D::_origin = nullptr;
 
 QEntity* Env3D::selection_buffer = nullptr;
+QEntity* Env3D::selected_buffer = nullptr;
 
 Env3D::Env3D(QWidget *parent) : QWidget(parent) {
 	mode = LINE;
@@ -197,10 +198,11 @@ void Env3D::select_entity(QListWidgetItem *item) {
 	QEntity* selected_entity = reinterpret_cast<QEntity*>(item->data(NodePtrRole).value<void*>());
 
 	selected_entity->setEnabled(false);
-	selection_buffer = selected_entity;
+	selected_buffer = selected_entity;
 
 
 	QEntity* selection_entity = new QEntity(_rootEntity);
+	selection_buffer = selection_entity;
 
 	// Remove old material...
 	QVector<Qt3DExtras::QPhongMaterial*> materialv = selected_entity->componentsOfType<Qt3DExtras::QPhongMaterial>();
@@ -210,7 +212,7 @@ void Env3D::select_entity(QListWidgetItem *item) {
 //	}
 	// ...and replace it with a new one
 	auto *material = new Qt3DExtras::QPhongMaterial(_rootEntity);
-	material->setAmbient(Qt::darkMagenta);
+	material->setAmbient(Qt::red);
 	selection_entity->addComponent(material);
 
 	QVector<Qt3DRender::QGeometryRenderer*> meshv = selected_entity->componentsOfType<Qt3DRender::QGeometryRenderer>();
@@ -223,14 +225,34 @@ void Env3D::select_entity(QListWidgetItem *item) {
 				QByteArray copy = attrv.at(j)->buffer()->data();
 				copy.resize(2 * 3 * sizeof(float));
 				float *positions = reinterpret_cast<float*>(copy.data());
-				QVector3D start(*positions++, *positions++, *positions++);
-				QVector3D end(*positions++, *positions++, *positions++);
+
+
+				QVector3D start;
+				QVector3D end;
+
+				start.setX(*positions++);
+				start.setY(*positions++);
+				start.setZ(*positions++);
+				end.setX(*positions++);
+				end.setY(*positions++);
+				end.setZ(*positions++);
+
+
 				Qt3DExtras::QCylinderMesh *cylinderMesh = new Qt3DExtras::QCylinderMesh;
 				cylinderMesh->setRings(10);
 				cylinderMesh->setSlices(10);
 				cylinderMesh->setRadius(1);
 				cylinderMesh->setLength(start.distanceToPoint(end));
+
+				Qt3DCore::QTransform *cylinderTransform = new Qt3DCore::QTransform;
+				//cylinderTransform->setScale3D(QVector3D(1.5, 1, 0.5));
+				cylinderTransform->setRotation(QQuaternion::rotationTo(QVector3D(0,1,0), start - end));
+				cylinderTransform->setTranslation((start + end) / 2);
+
 				selection_entity->addComponent(cylinderMesh);
+				selection_entity->addComponent(cylinderTransform);
+
+				selection_entity->setEnabled(true);
 			}
 		}
 	}
@@ -240,7 +262,8 @@ void Env3D::select_entity(QListWidgetItem *item) {
 
 
 void Env3D::unselect_entity(void) {
-	selection_buffer->setEnabled(true);
+	selected_buffer->setEnabled(true);
+	selection_buffer->setEnabled(false);
 	emit entity_unselected();
 };
 

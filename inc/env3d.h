@@ -72,7 +72,9 @@ private:
 
 	void start_2D(Axis axis, float da = 0);
 
+
 	static QEntity* selection_buffer;
+	static QEntity* selected_buffer;
 
 	// Helpers
 	Mode mode;

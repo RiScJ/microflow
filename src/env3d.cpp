@@ -44,7 +44,7 @@ QEntity* Env3D::selection_buffer = nullptr;
 QEntity* Env3D::selected_buffer = nullptr;
 
 Env3D::Env3D(QWidget *parent) : QWidget(parent) {
-	mode = LINE;
+	mode = NONE;
 	dim = THREE_D;
 
 	init_helpers();
@@ -57,7 +57,6 @@ Env3D::Env3D(QWidget *parent) : QWidget(parent) {
 	container->setMinimumSize(1920,1080);
 
 	createScene();
-	create_grid(Z);
 //	QObjectPicker gridPicker = QObjectPicker();
 
 	_camera = view->camera();
@@ -79,7 +78,13 @@ void Env3D::start_2D(Axis axis, float da) {
 	_camera->lens()->setOrthographicProjection(10.0f, 10.0f, 10.0f, 10.0f, 0.1f, 10000.0f);
 	_camera->setPosition(QVector3D(0, 0, 10.0f));
 	_camera->setViewCenter(QVector3D(0, 0, 0));
+	_camera->setUpVector(QVector3D(0,1,0));
 	_camera->viewAll();
+}
+
+
+void Env3D::end_2D(void) {
+
 }
 
 
@@ -93,6 +98,7 @@ void Env3D::new_2D(bool checked) {
 		 * switch to orthographic projection, move the camera above the plane,
 		 * face it, and rotate away any skew. */
 
+		start_2D(X);
 
 	} else {
 		// User cancelled
@@ -119,7 +125,51 @@ void Env3D::init_helpers(void) {
 };
 
 
-QEntity *Env3D::draw_line(const QVector3D& start, const QVector3D& end, const QColor& color) {
+QEntity* Env3D::draw_square(const QVector3D &start, const QVector3D &end, const QColor &color) {
+//	QEntity* square = new QEntity(_rootEntity);
+//	QEntity* segment = new QEntity(square);
+
+	QVector3D other1;
+	QVector3D other2;
+
+	QVector3D axisX(1,0,0);
+
+	QVector3D start_to_end(end-start);
+
+	double m_start_to_other1 = sqrt(start_to_end.lengthSquared() / 2);
+	double d_start_to_other1 = acos(QVector3D::dotProduct(axisX, start_to_end) / start_to_end.length()) + PI/4;
+
+	QVector3D start_to_other1;
+	start_to_other1.setX(cos(d_start_to_other1));
+	start_to_other1.setY(sin(d_start_to_other1));
+	start_to_other1.setZ(0);
+	start_to_other1 *= m_start_to_other1;
+
+	other1 = start + start_to_other1;
+
+
+
+	double m_start_to_other2 = sqrt(start_to_end.lengthSquared() / 2);
+	double d_start_to_other2 = acos(QVector3D::dotProduct(axisX, start_to_end) / start_to_end.length()) - PI/4;
+
+	QVector3D start_to_other2;
+	start_to_other2.setX(cos(d_start_to_other2));
+	start_to_other2.setY(sin(d_start_to_other2));
+	start_to_other2.setZ(0);
+	start_to_other2 *= m_start_to_other2;
+
+	other2 = start + start_to_other2;
+
+
+
+	draw_line(start, other1, color);
+	draw_line(other1, end, color);
+	draw_line(end, other2, color);
+	draw_line(other2, start, color);
+};
+
+
+QEntity* Env3D::draw_line(const QVector3D& start, const QVector3D& end, const QColor& color) {
 	auto *geometry = new Qt3DRender::QGeometry(_rootEntity);
 
 	// Extract line start and endpoint coordinates
@@ -279,6 +329,17 @@ bool Env3D::eventFilter(QObject *obj, QEvent *e) {
 			} else {
 				QPoint end(mouseEvent->pos());
 				draw_line(QVector3D(line_start), QVector3D(end), Qt::black);
+			}
+			line_hasStart ^= 1;
+			return true;
+		}
+		case SQUARE: {
+			QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(e);
+			if (!line_hasStart) {
+				line_start = QPoint(mouseEvent->pos());
+			} else {
+				QPoint end(mouseEvent->pos());
+				draw_square(QVector3D(line_start), QVector3D(end), Qt::black);
 			}
 			line_hasStart ^= 1;
 			return true;

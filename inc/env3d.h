@@ -8,6 +8,8 @@
 #include <Qt3DCore>
 #include <QListWidgetItem>
 
+#define PI 3.14159265358979323846264
+
 using namespace Qt3DCore;
 
 enum ItemDataRole {
@@ -24,7 +26,8 @@ enum Dim {
 enum Mode {
 	NONE,
 	POINT,
-	LINE
+	LINE,
+	SQUARE
 };
 
 enum Axis {
@@ -39,11 +42,12 @@ class Env3D : public QWidget
 public:
 	explicit Env3D(QWidget *parent = nullptr);
 	void createScene(void);
-	Qt3DCore::QEntity *draw_line(const QVector3D &start, const QVector3D &end, const QColor &color);
+	QEntity* draw_line(const QVector3D &start, const QVector3D &end, const QColor &color);
 	void new_2D(bool checked);
 	QWidget *container;
 	void select_entity(QListWidgetItem* item);
 	void unselect_entity(void);
+	QEntity* draw_square(const QVector3D& start, const QVector3D& end, const QColor& color);
 
 signals:
 	void entity_created(const QString& text, QEntity* entity);
@@ -71,6 +75,7 @@ private:
 	void create_grid(Axis axis, float dx = 0, float dy = 0, float dz = 0);
 
 	void start_2D(Axis axis, float da = 0);
+	void end_2D(void);
 
 
 	static QEntity* selection_buffer;

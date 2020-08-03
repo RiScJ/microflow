@@ -19,6 +19,7 @@ MainWindow::MainWindow(Env3D &view, QWidget *parent) : QMainWindow(parent) {
 	MainWindow::create_dockwidget();
 	connect(_view, &Env3D::entity_unselected, this, &MainWindow::handle_entity_unselection);
 	connect(this, &MainWindow::select_entity, _view, &Env3D::select_entity);
+	connect(_view, &Env3D::destroy_grid, this, &MainWindow::destroy_grid);
 };
 
 
@@ -52,11 +53,31 @@ void MainWindow::create_dockwidget() {
 };
 
 
-void MainWindow::add_entity(const QString &text, QEntity* entity) {
+void MainWindow::add_entity(const QString &text, QEntity* entity, Mode drawMode) {
 	QListWidgetItem* newItem = new QListWidgetItem();
-	newItem->setText(text);
+	newItem->setData(EntityTypeRole, drawMode);
 	newItem->setData(NodePtrRole, QVariant::fromValue(reinterpret_cast<void*>(entity)));
+	switch (drawMode) {
+	case GRID:
+		newItem->setHidden(true);
+		break;
+	default: {
+		newItem->setText(text);
+		break;
+	}
+	}
 	list->addItem(newItem);
+};
+
+
+void MainWindow::destroy_grid(void) {
+	for (int i = list->count() - 1; i >= 0; i--) {
+		if (list->item(i)->data(EntityTypeRole) == GRID) {
+			QEntity* entity = reinterpret_cast<QEntity*>(list->item(i)->data(NodePtrRole).value<void*>());
+			entity->~QEntity();
+			list->item(i)->~QListWidgetItem();
+		}
+	}
 };
 
 

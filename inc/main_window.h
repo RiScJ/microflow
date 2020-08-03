@@ -16,9 +16,10 @@ public:
 	explicit MainWindow(Env3D &view, QWidget *parent = nullptr);
 //	EntityList *entitylist;
 	QListWidget *list;
-	void add_entity(const QString& text, QEntity* entity);
+	void add_entity(const QString& text, QEntity* entity, Mode drawMode);
 	void handle_entity_selection(QListWidgetItem* item);
 	void handle_entity_unselection();
+	void destroy_grid(void);
 signals:
 	void select_entity(QListWidgetItem* item);
 private:

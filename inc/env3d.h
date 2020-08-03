@@ -13,7 +13,8 @@
 using namespace Qt3DCore;
 
 enum ItemDataRole {
-	NodePtrRole = 0x0101
+	NodePtrRole = 0x0101,
+	EntityTypeRole = 0x0102
 };
 
 enum Dim {
@@ -27,7 +28,8 @@ enum Mode {
 	NONE,
 	POINT,
 	LINE,
-	SQUARE
+	SQUARE,
+	GRID = 1000
 };
 
 enum Axis {
@@ -62,8 +64,9 @@ public:
 	void exited_YZ(void);
 
 signals:
-	void entity_created(const QString& text, QEntity* entity);
+	void entity_created(const QString& text, QEntity* entity, Mode drawMode);
 	void entity_unselected(void);
+	void destroy_grid(void);
 
 protected:
 

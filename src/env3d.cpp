@@ -70,7 +70,7 @@ Env3D::Env3D(QWidget *parent) : QWidget(parent) {
 
 	_camera = view->camera();
 	_camera->lens()->setPerspectiveProjection(45.0f, 16.0f/9.0f, 0.1f, 10000.0f);
-	_camera->setPosition(QVector3D(0, 0, 100.0f));
+	_camera->setPosition(QVector3D(0, 0, 500.0f));
 	_camera->setViewCenter(QVector3D(0, 0, 0));
 
 	// I think it would be wise to implement both of these for various circumstances...
@@ -153,6 +153,7 @@ void Env3D::entered_XY(void) {
 	material->setAlpha(1.0f);
 	material->setAmbient(Z_AXIS_COLOR);
 	_XY->addComponent(material);
+	create_grid(Z, 100, 10, 1, 1, 0);
 };
 
 void Env3D::entered_XZ(void) {
@@ -160,6 +161,7 @@ void Env3D::entered_XZ(void) {
 	material->setAlpha(1.0f);
 	material->setAmbient(Y_AXIS_COLOR);
 	_XZ->addComponent(material);
+	create_grid(Y, 100, 10, 1, 0, 1);
 };
 
 void Env3D::entered_YZ(void) {
@@ -167,6 +169,7 @@ void Env3D::entered_YZ(void) {
 	material->setAlpha(1.0f);
 	material->setAmbient(X_AXIS_COLOR);
 	_YZ->addComponent(material);
+	create_grid(X, 100, 10, 0, 1, 1);
 };
 
 
@@ -175,6 +178,7 @@ void Env3D::exited_XY(void) {
 	material->setAlpha(0.1f);
 	material->setAmbient(Z_AXIS_COLOR);
 	_XY->addComponent(material);
+	emit destroy_grid();
 };
 
 void Env3D::exited_XZ(void) {
@@ -182,6 +186,7 @@ void Env3D::exited_XZ(void) {
 	material->setAlpha(0.1f);
 	material->setAmbient(Y_AXIS_COLOR);
 	_XZ->addComponent(material);
+	emit destroy_grid();
 };
 
 void Env3D::exited_YZ(void) {
@@ -189,6 +194,7 @@ void Env3D::exited_YZ(void) {
 	material->setAlpha(0.1f);
 	material->setAmbient(X_AXIS_COLOR);
 	_YZ->addComponent(material);
+	emit destroy_grid();
 };
 
 
@@ -339,7 +345,7 @@ QEntity* Env3D::draw_line(const QVector3D& start, const QVector3D& end, const QC
 	lineEntity->addComponent(line);
 	lineEntity->addComponent(material);
 
-	emit entity_created("line", lineEntity);
+	emit entity_created("line", lineEntity, mode);
 	return lineEntity;
 }
 
@@ -421,10 +427,32 @@ void Env3D::create_origin(void) {
 
 
 void Env3D::create_grid(Axis axis, int length, int spacing, float dx, float dy, float dz) {
-	for (int i = 0; i <= length; i += spacing) {
-		draw_line(QVector3D(dx + i, dy, dz), length * QVector3D(0, 1, 0) + QVector3D(dx + i, dy, dz), GRID_COLOR);
-		draw_line(QVector3D(dx, dy + i, dz), length * QVector3D(1, 0, 0) + QVector3D(dx, dy + i, dz), GRID_COLOR);
+	mode = GRID;
+	switch (axis) {
+	case X: {
+		for (int i = 0; i <= length; i += spacing) {
+			draw_line(QVector3D(dx, dy, dz + i), length * QVector3D(0, 1, 0) + QVector3D(dx, dy, dz + i), GRID_COLOR);
+			draw_line(QVector3D(dx, dy + i, dz), length * QVector3D(0, 0, 1) + QVector3D(dx, dy + i, dz), GRID_COLOR);
+		}
+		break;
 	}
+	case Y: {
+		for (int i = 0; i <= length; i += spacing) {
+			draw_line(QVector3D(dx + i, dy, dz), length * QVector3D(0, 0, 1) + QVector3D(dx + i, dy, dz), GRID_COLOR);
+			draw_line(QVector3D(dx, dy, dz + i), length * QVector3D(1, 0, 0) + QVector3D(dx, dy, dz + i), GRID_COLOR);
+		}
+		break;
+	}
+	case Z: {
+		for (int i = 0; i <= length; i += spacing) {
+			draw_line(QVector3D(dx + i, dy, dz), length * QVector3D(0, 1, 0) + QVector3D(dx + i, dy, dz), GRID_COLOR);
+			draw_line(QVector3D(dx, dy + i, dz), length * QVector3D(1, 0, 0) + QVector3D(dx, dy + i, dz), GRID_COLOR);
+		}
+		break;
+	}
+	default: break;
+	}
+	mode = NONE;
 }
 
 

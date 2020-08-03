@@ -84,18 +84,44 @@ Env3D::Env3D(QWidget *parent) : QWidget(parent) {
 }
 
 
+void Env3D::new_line(void) {
+
+};
+
+
 void Env3D::start_2D(Axis axis, float da) {
 	dim = TWO_D;
-	_camera->lens()->setOrthographicProjection(10.0f, 10.0f, 10.0f, 10.0f, 0.1f, 10000.0f);
-	_camera->setPosition(QVector3D(0, 0, 10.0f));
+	emit changed_dimension(dim);
+//	_camera->lens()->setOrthographicProjection(10.0f, 10.0f, 10.0f, 10.0f, 0.1f, 10000.0f);
+	switch (axis) {
+	case X: {
+		_camera->setPosition(QVector3D(10.0f, 0, 0));
+		_camera->setUpVector(QVector3D(0,0,1));
+		break;
+	}
+	case Y: {
+		_camera->setPosition(QVector3D(0, 10.0f, 0));
+		_camera->setUpVector(QVector3D(1,0,0));
+		break;
+	}
+	case Z: {
+		_camera->setPosition(QVector3D(0, 0, 10.0f));
+		_camera->setUpVector(QVector3D(0,1,0));
+		mode = CARTESIAN;
+		create_grid(Z, 100, 5, -50, -50, 0);
+		break;
+	}
+	default: break;
+	}
 	_camera->setViewCenter(QVector3D(0, 0, 0));
-	_camera->setUpVector(QVector3D(0,1,0));
 	_camera->viewAll();
 }
 
 
 void Env3D::end_2D(void) {
-
+	dim = THREE_D;
+	emit changed_dimension(dim);
+	_camera->lens()->setPerspectiveProjection(45.0f, 16.0f/9.0f, 0.1f, 10000.0f);
 }
 
 
@@ -118,34 +144,57 @@ void Env3D::new_2D(bool checked) {
 		_XY->addComponent(pickXY);
 		connect(pickXY, &QObjectPicker::entered, this, &Env3D::entered_XY);
 		connect(pickXY, &QObjectPicker::exited, this, &Env3D::exited_XY);
+		connect(pickXY, &QObjectPicker::clicked, this, &Env3D::selected_sketchplane);
 
 		QObjectPicker* pickXZ = new QObjectPicker();
 		pickXZ->setHoverEnabled(true);
 		_XZ->addComponent(pickXZ);
 		connect(pickXZ, &QObjectPicker::entered, this, &Env3D::entered_XZ);
 		connect(pickXZ, &QObjectPicker::exited, this, &Env3D::exited_XZ);
+		connect(pickXZ, &QObjectPicker::clicked, this, &Env3D::selected_sketchplane);
 
 		QObjectPicker* pickYZ = new QObjectPicker();
 		pickYZ->setHoverEnabled(true);
 		_YZ->addComponent(pickYZ);
 		connect(pickYZ, &QObjectPicker::entered, this, &Env3D::entered_YZ);
 		connect(pickYZ, &QObjectPicker::exited, this, &Env3D::exited_YZ);
+		connect(pickYZ, &QObjectPicker::clicked, this, &Env3D::selected_sketchplane);
 
-//		start_2D(X);
 
 	} else {
-		// User cancelled
-		dim = THREE_D;
-//		_camera->lens()->setPerspectiveProjection(45.0f, 16.0f/9.0f, 0.1f, 10000.0f);
-//		_camera->setPosition(QVector3D(0, 0, 4.0f));
-//		_camera->setViewCenter(QVector3D(0, 0, 0));
-//		_camera->viewAll();
-
 		_XY->setEnabled(false);
 		_XZ->setEnabled(false);
 		_YZ->setEnabled(false);
+
+		_XY->removeComponent(_XY->componentsOfType<QObjectPicker>().first());
+		_XZ->removeComponent(_XZ->componentsOfType<QObjectPicker>().first());
+		_YZ->removeComponent(_YZ->componentsOfType<QObjectPicker>().first());
 	}
 }
+
+
+void Env3D::selected_sketchplane(QPickEvent *pick) {
+	emit destroy_grid();
+
+	_XY->setEnabled(false);
+	_XZ->setEnabled(false);
+	_YZ->setEnabled(false);
+
+	_XY->removeComponent(_XY->componentsOfType<QObjectPicker>().first());
+	_XZ->removeComponent(_XZ->componentsOfType<QObjectPicker>().first());
+	_YZ->removeComponent(_YZ->componentsOfType<QObjectPicker>().first());
+
+	QEntity* plane = pick->entity();
+	if (plane == _XY) {
+		start_2D(Z);
+	} else if (plane == _XZ) {
+		start_2D(Y);
+	} else if (plane == _YZ) {
+		start_2D(X);
+	} else {
+
+	}
+};
 
 
 void Env3D::entered_XY(void) {
@@ -153,6 +202,7 @@ void Env3D::entered_XY(void) {
 	material->setAlpha(1.0f);
 	material->setAmbient(Z_AXIS_COLOR);
 	_XY->addComponent(material);
+	mode = GRID;
 	create_grid(Z, 100, 10, 1, 1, 0);
 };
 
@@ -161,6 +211,7 @@ void Env3D::entered_XZ(void) {
 	material->setAlpha(1.0f);
 	material->setAmbient(Y_AXIS_COLOR);
 	_XZ->addComponent(material);
+	mode = GRID;
 	create_grid(Y, 100, 10, 1, 0, 1);
 };
 
@@ -169,6 +220,7 @@ void Env3D::entered_YZ(void) {
 	material->setAlpha(1.0f);
 	material->setAmbient(X_AXIS_COLOR);
 	_YZ->addComponent(material);
+	mode = GRID;
 	create_grid(X, 100, 10, 0, 1, 1);
 };
 
@@ -427,7 +479,6 @@ void Env3D::create_origin(void) {
 
 
 void Env3D::create_grid(Axis axis, int length, int spacing, float dx, float dy, float dz) {
-	mode = GRID;
 	switch (axis) {
 	case X: {
 		for (int i = 0; i <= length; i += spacing) {

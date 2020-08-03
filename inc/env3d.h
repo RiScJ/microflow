@@ -7,10 +7,12 @@
 #include <Qt3DRender>
 #include <Qt3DCore>
 #include <QListWidgetItem>
+#include <QPickEvent>
 
 #define PI 3.14159265358979323846264
 
 using namespace Qt3DCore;
+using namespace Qt3DRender;
 
 enum ItemDataRole {
 	NodePtrRole = 0x0101,
@@ -29,7 +31,8 @@ enum Mode {
 	POINT,
 	LINE,
 	SQUARE,
-	GRID = 1000
+	GRID = 1000,
+	CARTESIAN
 };
 
 enum Axis {
@@ -62,11 +65,16 @@ public:
 	void exited_XZ(void);
 	void entered_YZ(void);
 	void exited_YZ(void);
+	void selected_sketchplane(QPickEvent* pick);
+	void new_line(void);
+
+	void end_2D(void);
 
 signals:
 	void entity_created(const QString& text, QEntity* entity, Mode drawMode);
 	void entity_unselected(void);
 	void destroy_grid(void);
+	void changed_dimension(int dim);
 
 protected:
 
@@ -92,7 +100,6 @@ private:
 	static const Qt::GlobalColor GRID_COLOR = Qt::gray;
 	void create_grid(Axis axis, int length = GRID_LENGTH, int spacing = GRID_SPACING, float dx = 0, float dy = 0, float dz = 0);
 	void start_2D(Axis axis, float da = 0);
-	void end_2D(void);
 
 	QEntity* draw_patch(const QVector<QVector3D> pointv, const int pointc, const QColor& color, const float& alpha = 0);
 

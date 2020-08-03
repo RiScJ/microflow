@@ -1,5 +1,14 @@
 <RCC>
     <qresource prefix="/">
         <file>icon/pencil.svg</file>
+        <file>icon/download.svg</file>
+        <file>icon/color-wheel.svg</file>
+        <file>icon/font.svg</file>
+        <file>icon/export.svg</file>
+        <file>icon/line.svg</file>
+        <file>icon/parameters.svg</file>
+        <file>icon/3d-missing-chunk.svg</file>
+        <file>icon/3d-modeling.svg</file>
+        <file>icon/3d-cube.svg</file>
     </qresource>
 </RCC>

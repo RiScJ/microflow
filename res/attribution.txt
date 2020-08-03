@@ -1,4 +1,19 @@
 Icons made by <a href="https://www.flaticon.com/authors/srip" title="srip">srip</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a> :
 	qrc:/icon/pencil.svg
 
-
+Icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
+	qrc:/icon/3d-cube.svg
+	qrc:/icon/3d-modeling.svg
+	qrc:/icon/font.svg
+	qrc:/icon/color-wheel.svg
+	
+Icons made by <a href="https://www.flaticon.com/authors/pixel-perfect" title="Pixel perfect">Pixel perfect</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
+	qrc:/icon/3d-chunk-missing.svg
+	qrc:/icon/parameters.svg
+	qrc:/icon/export.svg
+	qrc:/icon/download.svg
+	
+Icons made by <a href="https://www.flaticon.com/authors/catkuro" title="catkuro">catkuro</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
+	qrc:/icon/line.svg
+	
+	

@@ -37,6 +37,12 @@ enum Axis {
 	Z
 };
 
+enum Plane {
+	XY,
+	XZ,
+	YZ
+};
+
 class Env3D : public QWidget
 {	Q_OBJECT
 public:
@@ -47,7 +53,13 @@ public:
 	QWidget *container;
 	void select_entity(QListWidgetItem* item);
 	void unselect_entity(void);
-	QEntity* draw_square(const QVector3D& start, const QVector3D& end, const QColor& color);
+	QEntity* draw_square(const Plane& plane, const QVector3D& start, const QVector3D& end, const QColor& color, const float& alpha = 0);
+	void entered_XY(void);
+	void exited_XY(void);
+	void entered_XZ(void);
+	void exited_XZ(void);
+	void entered_YZ(void);
+	void exited_YZ(void);
 
 signals:
 	void entity_created(const QString& text, QEntity* entity);
@@ -63,6 +75,9 @@ private:
 	static Qt3DRender::QCamera *_camera;
 
 	static Qt3DCore::QEntity *_origin;
+	static Qt3DCore::QEntity *_XY;
+	static Qt3DCore::QEntity *_XZ;
+	static Qt3DCore::QEntity *_YZ;
 	static const int AXIS_LENGTH = 10;
 	static const Qt::GlobalColor X_AXIS_COLOR = Qt::red;
 	static const Qt::GlobalColor Y_AXIS_COLOR = Qt::green;
@@ -72,10 +87,11 @@ private:
 	static const int GRID_LENGTH = 10;
 	static const int GRID_SPACING = 1;
 	static const Qt::GlobalColor GRID_COLOR = Qt::gray;
-	void create_grid(Axis axis, float dx = 0, float dy = 0, float dz = 0);
-
+	void create_grid(Axis axis, int length = GRID_LENGTH, int spacing = GRID_SPACING, float dx = 0, float dy = 0, float dz = 0);
 	void start_2D(Axis axis, float da = 0);
 	void end_2D(void);
+
+	QEntity* draw_patch(const QVector<QVector3D> pointv, const int pointc, const QColor& color, const float& alpha = 0);
 
 
 	static QEntity* selection_buffer;

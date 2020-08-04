@@ -35,12 +35,7 @@ int main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);
 
-	Env3D *view = new Env3D();
-	MainWindow mainWindow(*view);
-
-
-
-	mainWindow.setCentralWidget(view);
+	MainWindow mainWindow;
 	mainWindow.showMaximized();
 	mainWindow.show();
 	return app.exec();

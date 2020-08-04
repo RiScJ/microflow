@@ -7,8 +7,8 @@
 #include <QDockWidget>
 #include <QListWidgetItem>
 #include <Qt3DCore>
+#include <QLayout>
 
-using namespace Qt3DCore;
 
 Env3D* MainWindow::_view = nullptr;
 QToolBar* MainWindow::_bar = nullptr;
@@ -16,16 +16,21 @@ QAction* MainWindow::new_2D = nullptr;
 QAction* MainWindow::new_line = nullptr;
 QAction* MainWindow::end_2D = nullptr;
 
-MainWindow::MainWindow(Env3D &view, QWidget *parent) : QMainWindow(parent) {
-	_view = &view;
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+	Env3D *view = new Env3D();
+	_view = view;
+
 	MainWindow::create_menubar();
 	MainWindow::create_actions();
 	MainWindow::create_toolbar();
 	MainWindow::create_dockwidget();
+
 	connect(_view, &Env3D::entity_unselected, this, &MainWindow::handle_entity_unselection);
 	connect(this, &MainWindow::select_entity, _view, &Env3D::select_entity);
 	connect(_view, &Env3D::destroy_grid, this, &MainWindow::destroy_grid);
 	connect(_view, &Env3D::changed_dimension, this, &MainWindow::handle_change_dimension);
+
+	setCentralWidget(view);
 };
 
 

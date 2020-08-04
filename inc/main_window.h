@@ -13,7 +13,7 @@ class MainWindow : public QMainWindow
 {
 	Q_OBJECT
 public:
-	explicit MainWindow(Env3D &view, QWidget *parent = nullptr);
+	explicit MainWindow(QWidget *parent = nullptr);
 //	EntityList *entitylist;
 	QListWidget *list;
 	void add_entity(const QString& text, QEntity* entity, Mode drawMode);

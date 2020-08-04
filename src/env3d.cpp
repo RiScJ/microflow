@@ -30,6 +30,9 @@
 #include <QFirstPersonCameraController>
 #include <QObjectPicker>
 #include <QPhongAlphaMaterial>
+#include <Qt3DInput/QMouseHandler>
+#include <Qt3DInput/QMouseEvent>
+#include <QMouseDevice>
 
 #include <QDebug>
 #include <QMouseEvent>
@@ -37,33 +40,32 @@
 
 #include "qt3dwindow.h"
 
-using namespace Qt3DCore;
-using namespace Qt3DRender;
-using namespace Qt3DExtras;
-
-QEntity *Env3D::_rootEntity = nullptr;
+Qt3DCore::QEntity *Env3D::_rootEntity = nullptr;
 Qt3DRender::QCamera *Env3D::_camera = nullptr;
 
-QEntity *Env3D::_origin = nullptr;
-QEntity *Env3D::_XY = nullptr;
-QEntity *Env3D::_XZ = nullptr;
-QEntity *Env3D::_YZ = nullptr;
+Qt3DCore::QEntity *Env3D::_origin = nullptr;
+Qt3DCore::QEntity *Env3D::_XY = nullptr;
+Qt3DCore::QEntity *Env3D::_XZ = nullptr;
+Qt3DCore::QEntity *Env3D::_YZ = nullptr;
 
-QEntity* Env3D::selection_buffer = nullptr;
-QEntity* Env3D::selected_buffer = nullptr;
+Qt3DCore::QEntity* Env3D::selection_buffer = nullptr;
+Qt3DCore::QEntity* Env3D::selected_buffer = nullptr;
+
+Qt3DRender::QObjectPicker* Env3D::_lineHandler = nullptr;
+Qt3DCore::QEntity* Env3D::line_buffer = new Qt3DCore::QEntity();
+Qt3DCore::QEntity* Env3D::_square = new Qt3DCore::QEntity();
 
 Env3D::Env3D(QWidget *parent) : QWidget(parent) {
 	mode = NONE;
 	dim = THREE_D;
-
 	init_helpers();
 
 	auto view = new Qt3DExtras::Qt3DWindow();
-	view->installEventFilter(this);
+//	view->installEventFilter(this);
 	view->defaultFrameGraph()->setClearColor(QColor(QRgb(0xeeeeff)));
 
 	container = createWindowContainer(view, this);
-	container->setMinimumSize(1920,1080);
+	container->setMinimumSize(QSize(1920,1080));
 
 	createScene();
 //	QObjectPicker gridPicker = QObjectPicker();
@@ -85,27 +87,73 @@ Env3D::Env3D(QWidget *parent) : QWidget(parent) {
 
 
 void Env3D::new_line(void) {
-
+	QGuiApplication::setOverrideCursor(QCursor(Qt::CrossCursor));
+	Qt3DRender::QObjectPicker* lineHandler = new Qt3DRender::QObjectPicker(_rootEntity);
+	Qt3DCore::QEntity* square = draw_square(XY, QVector3D(-100,-100,0), QVector3D(100,100,0), Z_AXIS_COLOR, 0.0f);
+	square->addComponent(lineHandler);
+	connect(lineHandler, &Qt3DRender::QObjectPicker::clicked, this, &Env3D::start_line);
+	_lineHandler = lineHandler;
+	_square = square;
 };
+
+
+void Env3D::start_line(Qt3DRender::QPickEvent *pick) {
+	if (pick->button() == Qt3DRender::QPickEvent::LeftButton) {
+		QVector3D point = pick->worldIntersection();
+		point.setZ(0);
+		line_start = point;
+		_lineHandler->disconnect();
+		_square->removeComponent(_lineHandler);
+		_lineHandler->~QObjectPicker();
+		Qt3DRender::QObjectPicker* lineHandler = new Qt3DRender::QObjectPicker();
+		lineHandler->setHoverEnabled(true);
+		mode = LINE;
+		connect(lineHandler, &Qt3DRender::QObjectPicker::clicked, this, &Env3D::end_line);
+		_square->addComponent(lineHandler);
+		_lineHandler = lineHandler;
+	}
+};
+
+
+void Env3D::mid_line(Qt3DRender::QPickEvent *pick) {
+//	qDebug() << "in mid";
+//	line_buffer->~QEntity();
+//	QVector3D point = pick->worldIntersection();
+//	point.setZ(0);
+//	line_buffer = draw_line(line_start, point, Qt::red);
+//	qDebug() << "in mid";
+};
+
+
+void Env3D::end_line(Qt3DRender::QPickEvent *pick) {
+	if (pick->button() == Qt3DRender::QPickEvent::LeftButton) {
+		QVector3D point = pick->worldIntersection();
+		point.setZ(0);
+		draw_line(line_start, point, Qt::green);
+	}
+};
+
 
 
 void Env3D::start_2D(Axis axis, float da) {
 	dim = TWO_D;
 	emit changed_dimension(dim);
-//	_camera->lens()->setOrthographicProjection(10.0f, 10.0f, 10.0f, 10.0f, 0.1f, 10000.0f);
+//	float aspect = height() / width();
+//	float horizView = 100.0f;
+	_camera->lens()->setOrthographicProjection(100.0f, 100.0f, 100.0f, 100.0f, 0.1f, 10000.0f);
 	switch (axis) {
 	case X: {
-		_camera->setPosition(QVector3D(10.0f, 0, 0));
+		_camera->setPosition(QVector3D(400.0f, 0, 0));
 		_camera->setUpVector(QVector3D(0,0,1));
 		break;
 	}
 	case Y: {
-		_camera->setPosition(QVector3D(0, 10.0f, 0));
+		_camera->setPosition(QVector3D(0, 400.0f, 0));
 		_camera->setUpVector(QVector3D(1,0,0));
 		break;
 	}
 	case Z: {
-		_camera->setPosition(QVector3D(0, 0, 10.0f));
+		_camera->setPosition(QVector3D(0, 0, 400.0f));
 		_camera->setUpVector(QVector3D(0,1,0));
 		mode = CARTESIAN;
 		create_grid(Z, 100, 5, -50, -50, 0);
@@ -139,26 +187,26 @@ void Env3D::new_2D(bool checked) {
 		_XZ->setEnabled(true);
 		_YZ->setEnabled(true);
 
-		QObjectPicker* pickXY = new QObjectPicker();
+		Qt3DRender::QObjectPicker* pickXY = new Qt3DRender::QObjectPicker();
 		pickXY->setHoverEnabled(true);
 		_XY->addComponent(pickXY);
-		connect(pickXY, &QObjectPicker::entered, this, &Env3D::entered_XY);
-		connect(pickXY, &QObjectPicker::exited, this, &Env3D::exited_XY);
-		connect(pickXY, &QObjectPicker::clicked, this, &Env3D::selected_sketchplane);
+		connect(pickXY, &Qt3DRender::QObjectPicker::entered, this, &Env3D::entered_XY);
+		connect(pickXY, &Qt3DRender::QObjectPicker::exited, this, &Env3D::exited_XY);
+		connect(pickXY, &Qt3DRender::QObjectPicker::clicked, this, &Env3D::selected_sketchplane);
 
-		QObjectPicker* pickXZ = new QObjectPicker();
+		Qt3DRender::QObjectPicker* pickXZ = new Qt3DRender::QObjectPicker();
 		pickXZ->setHoverEnabled(true);
 		_XZ->addComponent(pickXZ);
-		connect(pickXZ, &QObjectPicker::entered, this, &Env3D::entered_XZ);
-		connect(pickXZ, &QObjectPicker::exited, this, &Env3D::exited_XZ);
-		connect(pickXZ, &QObjectPicker::clicked, this, &Env3D::selected_sketchplane);
+		connect(pickXZ, &Qt3DRender::QObjectPicker::entered, this, &Env3D::entered_XZ);
+		connect(pickXZ, &Qt3DRender::QObjectPicker::exited, this, &Env3D::exited_XZ);
+		connect(pickXZ, &Qt3DRender::QObjectPicker::clicked, this, &Env3D::selected_sketchplane);
 
-		QObjectPicker* pickYZ = new QObjectPicker();
+		Qt3DRender::QObjectPicker* pickYZ = new Qt3DRender::QObjectPicker();
 		pickYZ->setHoverEnabled(true);
 		_YZ->addComponent(pickYZ);
-		connect(pickYZ, &QObjectPicker::entered, this, &Env3D::entered_YZ);
-		connect(pickYZ, &QObjectPicker::exited, this, &Env3D::exited_YZ);
-		connect(pickYZ, &QObjectPicker::clicked, this, &Env3D::selected_sketchplane);
+		connect(pickYZ, &Qt3DRender::QObjectPicker::entered, this, &Env3D::entered_YZ);
+		connect(pickYZ, &Qt3DRender::QObjectPicker::exited, this, &Env3D::exited_YZ);
+		connect(pickYZ, &Qt3DRender::QObjectPicker::clicked, this, &Env3D::selected_sketchplane);
 
 
 	} else {
@@ -166,25 +214,25 @@ void Env3D::new_2D(bool checked) {
 		_XZ->setEnabled(false);
 		_YZ->setEnabled(false);
 
-		_XY->removeComponent(_XY->componentsOfType<QObjectPicker>().first());
-		_XZ->removeComponent(_XZ->componentsOfType<QObjectPicker>().first());
-		_YZ->removeComponent(_YZ->componentsOfType<QObjectPicker>().first());
+		_XY->removeComponent(_XY->componentsOfType<Qt3DRender::QObjectPicker>().first());
+		_XZ->removeComponent(_XZ->componentsOfType<Qt3DRender::QObjectPicker>().first());
+		_YZ->removeComponent(_YZ->componentsOfType<Qt3DRender::QObjectPicker>().first());
 	}
 }
 
 
-void Env3D::selected_sketchplane(QPickEvent *pick) {
+void Env3D::selected_sketchplane(Qt3DRender::QPickEvent *pick) {
 	emit destroy_grid();
 
 	_XY->setEnabled(false);
 	_XZ->setEnabled(false);
 	_YZ->setEnabled(false);
 
-	_XY->removeComponent(_XY->componentsOfType<QObjectPicker>().first());
-	_XZ->removeComponent(_XZ->componentsOfType<QObjectPicker>().first());
-	_YZ->removeComponent(_YZ->componentsOfType<QObjectPicker>().first());
+	_XY->removeComponent(_XY->componentsOfType<Qt3DRender::QObjectPicker>().first());
+	_XZ->removeComponent(_XZ->componentsOfType<Qt3DRender::QObjectPicker>().first());
+	_YZ->removeComponent(_YZ->componentsOfType<Qt3DRender::QObjectPicker>().first());
 
-	QEntity* plane = pick->entity();
+	Qt3DCore::QEntity* plane = pick->entity();
 	if (plane == _XY) {
 		start_2D(Z);
 	} else if (plane == _XZ) {
@@ -198,7 +246,7 @@ void Env3D::selected_sketchplane(QPickEvent *pick) {
 
 
 void Env3D::entered_XY(void) {
-	QPhongAlphaMaterial* material = new QPhongAlphaMaterial();
+	Qt3DExtras::QPhongAlphaMaterial* material = new Qt3DExtras::QPhongAlphaMaterial();
 	material->setAlpha(1.0f);
 	material->setAmbient(Z_AXIS_COLOR);
 	_XY->addComponent(material);
@@ -207,7 +255,7 @@ void Env3D::entered_XY(void) {
 };
 
 void Env3D::entered_XZ(void) {
-	QPhongAlphaMaterial* material = new QPhongAlphaMaterial();
+	Qt3DExtras::QPhongAlphaMaterial* material = new Qt3DExtras::QPhongAlphaMaterial();
 	material->setAlpha(1.0f);
 	material->setAmbient(Y_AXIS_COLOR);
 	_XZ->addComponent(material);
@@ -216,7 +264,7 @@ void Env3D::entered_XZ(void) {
 };
 
 void Env3D::entered_YZ(void) {
-	QPhongAlphaMaterial* material = new QPhongAlphaMaterial();
+	Qt3DExtras::QPhongAlphaMaterial* material = new Qt3DExtras::QPhongAlphaMaterial();
 	material->setAlpha(1.0f);
 	material->setAmbient(X_AXIS_COLOR);
 	_YZ->addComponent(material);
@@ -226,7 +274,7 @@ void Env3D::entered_YZ(void) {
 
 
 void Env3D::exited_XY(void) {
-	QPhongAlphaMaterial* material = new QPhongAlphaMaterial();
+	Qt3DExtras::QPhongAlphaMaterial* material = new Qt3DExtras::QPhongAlphaMaterial();
 	material->setAlpha(0.1f);
 	material->setAmbient(Z_AXIS_COLOR);
 	_XY->addComponent(material);
@@ -234,7 +282,7 @@ void Env3D::exited_XY(void) {
 };
 
 void Env3D::exited_XZ(void) {
-	QPhongAlphaMaterial* material = new QPhongAlphaMaterial();
+	Qt3DExtras::QPhongAlphaMaterial* material = new Qt3DExtras::QPhongAlphaMaterial();
 	material->setAlpha(0.1f);
 	material->setAmbient(Y_AXIS_COLOR);
 	_XZ->addComponent(material);
@@ -242,7 +290,7 @@ void Env3D::exited_XZ(void) {
 };
 
 void Env3D::exited_YZ(void) {
-	QPhongAlphaMaterial* material = new QPhongAlphaMaterial();
+	Qt3DExtras::QPhongAlphaMaterial* material = new Qt3DExtras::QPhongAlphaMaterial();
 	material->setAlpha(0.1f);
 	material->setAmbient(X_AXIS_COLOR);
 	_YZ->addComponent(material);
@@ -261,12 +309,12 @@ void Env3D::createScene(void) {
 
 
 void Env3D::init_helpers(void) {
-	line_start = QPoint(0, 0);
+	line_start = QVector3D(0, 0, 0);
 	line_hasStart = false;
 };
 
 
-QEntity* Env3D::draw_square(const Plane& plane, const QVector3D &start, const QVector3D &end, const QColor &color, const float& alpha) {
+Qt3DCore::QEntity* Env3D::draw_square(const Plane& plane, const QVector3D &start, const QVector3D &end, const QColor &color, const float& alpha) {
 
 	QVector3D other1;
 	QVector3D other2;
@@ -342,7 +390,7 @@ QEntity* Env3D::draw_square(const Plane& plane, const QVector3D &start, const QV
 };
 
 
-QEntity* Env3D::draw_line(const QVector3D& start, const QVector3D& end, const QColor& color) {
+Qt3DCore::QEntity* Env3D::draw_line(const QVector3D& start, const QVector3D& end, const QColor& color) {
 	auto *geometry = new Qt3DRender::QGeometry(_rootEntity);
 
 	// Extract line start and endpoint coordinates
@@ -393,7 +441,7 @@ QEntity* Env3D::draw_line(const QVector3D& start, const QVector3D& end, const QC
 	material->setAmbient(color);
 
 	// Entity from line, add entity to root
-	auto *lineEntity = new QEntity(_rootEntity);
+	auto *lineEntity = new Qt3DCore::QEntity(_rootEntity);
 	lineEntity->addComponent(line);
 	lineEntity->addComponent(material);
 
@@ -402,7 +450,7 @@ QEntity* Env3D::draw_line(const QVector3D& start, const QVector3D& end, const QC
 }
 
 
-QEntity* Env3D::draw_patch(const QVector<QVector3D> pointv, const int pointc, const QColor &color, const float& alpha) {
+Qt3DCore::QEntity* Env3D::draw_patch(const QVector<QVector3D> pointv, const int pointc, const QColor &color, const float& alpha) {
 	auto *geometry = new Qt3DRender::QGeometry(_rootEntity);
 
 	// Point vector to byte array
@@ -455,7 +503,7 @@ QEntity* Env3D::draw_patch(const QVector<QVector3D> pointv, const int pointc, co
 	material->setAmbient(color);
 	material->setAlpha(alpha);
 
-	auto *patchEntity = new QEntity(_rootEntity);
+	auto *patchEntity = new Qt3DCore::QEntity(_rootEntity);
 	patchEntity->addComponent(patch);
 	patchEntity->addComponent(material);
 
@@ -508,13 +556,13 @@ void Env3D::create_grid(Axis axis, int length, int spacing, float dx, float dy, 
 
 
 void Env3D::select_entity(QListWidgetItem *item) {
-	QEntity* selected_entity = reinterpret_cast<QEntity*>(item->data(NodePtrRole).value<void*>());
+	Qt3DCore::QEntity* selected_entity = reinterpret_cast<Qt3DCore::QEntity*>(item->data(NodePtrRole).value<void*>());
 
 	selected_entity->setEnabled(false);
 	selected_buffer = selected_entity;
 
 
-	QEntity* selection_entity = new QEntity(_rootEntity);
+	Qt3DCore::QEntity* selection_entity = new Qt3DCore::QEntity(_rootEntity);
 	selection_buffer = selection_entity;
 
 	// Remove old material...
@@ -582,41 +630,41 @@ void Env3D::unselect_entity(void) {
 
 
 bool Env3D::eventFilter(QObject *obj, QEvent *e) {
-	switch (e->type()) {
-	case QEvent::MouseButtonPress: {
-		switch (mode) {
-		case LINE: {
-			QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(e);
-			if (!line_hasStart) {
-				line_start = QPoint(mouseEvent->pos());
-			} else {
-				QPoint end(mouseEvent->pos());
-				draw_line(QVector3D(line_start), QVector3D(end), Qt::black);
-			}
-			line_hasStart ^= 1;
-			return true;
-		}
-		case SQUARE: {
-			QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(e);
-			if (!line_hasStart) {
-				line_start = QPoint(mouseEvent->pos());
-			} else {
-				QPoint end(mouseEvent->pos());
-				draw_square(XY, QVector3D(line_start), QVector3D(end), Qt::black);
-			}
-			line_hasStart ^= 1;
-			return true;
-		}
-		default: {
-			break;
-		}
-		}
-		break;
-	}
-	default:  {
-		break;
-	}
-	}
+//	switch (e->type()) {
+//	case QEvent::MouseButtonPress: {
+//		switch (mode) {
+//		case LINE: {
+//			QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(e);
+//			if (!line_hasStart) {
+//				line_start = QPoint(mouseEvent->pos());
+//			} else {
+//				QPoint end(mouseEvent->pos());
+//				draw_line(QVector3D(line_start), QVector3D(end), Qt::black);
+//			}
+//			line_hasStart ^= 1;
+//			return true;
+//		}
+//		case SQUARE: {
+//			QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(e);
+//			if (!line_hasStart) {
+//				line_start = QPoint(mouseEvent->pos());
+//			} else {
+//				QPoint end(mouseEvent->pos());
+//				draw_square(XY, QVector3D(line_start), QVector3D(end), Qt::black);
+//			}
+//			line_hasStart ^= 1;
+//			return true;
+//		}
+//		default: {
+//			break;
+//		}
+//		}
+//		break;
+//	}
+//	default:  {
+//		break;
+//	}
+//	}
 	return false;
 }
 

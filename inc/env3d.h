@@ -8,11 +8,10 @@
 #include <Qt3DCore>
 #include <QListWidgetItem>
 #include <QPickEvent>
+#include <Qt3DInput/QMouseHandler>
 
 #define PI 3.14159265358979323846264
 
-using namespace Qt3DCore;
-using namespace Qt3DRender;
 
 enum ItemDataRole {
 	NodePtrRole = 0x0101,
@@ -53,28 +52,32 @@ class Env3D : public QWidget
 public:
 	explicit Env3D(QWidget *parent = nullptr);
 	void createScene(void);
-	QEntity* draw_line(const QVector3D &start, const QVector3D &end, const QColor &color);
+	Qt3DCore::QEntity* draw_line(const QVector3D &start, const QVector3D &end, const QColor &color);
 	void new_2D(bool checked);
 	QWidget *container;
 	void select_entity(QListWidgetItem* item);
 	void unselect_entity(void);
-	QEntity* draw_square(const Plane& plane, const QVector3D& start, const QVector3D& end, const QColor& color, const float& alpha = 0);
+	Qt3DCore::QEntity* draw_square(const Plane& plane, const QVector3D& start, const QVector3D& end, const QColor& color, const float& alpha = 0);
 	void entered_XY(void);
 	void exited_XY(void);
 	void entered_XZ(void);
 	void exited_XZ(void);
 	void entered_YZ(void);
 	void exited_YZ(void);
-	void selected_sketchplane(QPickEvent* pick);
+	void selected_sketchplane(Qt3DRender::QPickEvent* pick);
 	void new_line(void);
 
 	void end_2D(void);
+	void start_line(Qt3DRender::QPickEvent *pick);
+	void mid_line(Qt3DRender::QPickEvent *pick);
+	void end_line(Qt3DRender::QPickEvent *pick);
 
 signals:
-	void entity_created(const QString& text, QEntity* entity, Mode drawMode);
+	void entity_created(const QString& text, Qt3DCore::QEntity* entity, Mode drawMode);
 	void entity_unselected(void);
 	void destroy_grid(void);
 	void changed_dimension(int dim);
+	void disconnect_line(Qt3DRender::QObjectPicker* picker);
 
 protected:
 
@@ -101,16 +104,20 @@ private:
 	void create_grid(Axis axis, int length = GRID_LENGTH, int spacing = GRID_SPACING, float dx = 0, float dy = 0, float dz = 0);
 	void start_2D(Axis axis, float da = 0);
 
-	QEntity* draw_patch(const QVector<QVector3D> pointv, const int pointc, const QColor& color, const float& alpha = 0);
+	Qt3DCore::QEntity* draw_patch(const QVector<QVector3D> pointv, const int pointc, const QColor& color, const float& alpha = 0);
 
 
-	static QEntity* selection_buffer;
-	static QEntity* selected_buffer;
+	static Qt3DCore::QEntity* selection_buffer;
+	static Qt3DCore::QEntity* selected_buffer;
+
+	static Qt3DRender::QObjectPicker* _lineHandler;
+	static Qt3DCore::QEntity* line_buffer;
+	static Qt3DCore::QEntity* _square;
 
 	// Helpers
 	Mode mode;
 	Dim dim;
-	QPoint line_start;
+	QVector3D line_start;
 	bool line_hasStart;
 };
 

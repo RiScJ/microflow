@@ -37,11 +37,10 @@ void MainWindow::create_actions(void) {
 
 	QAction *drawLine = new QAction(QIcon(":/icon/line.svg"), "Line", this);
 	new_line = drawLine;
-	connect(new_line, &QAction::triggered, _view, &Env3D::new_line);
 
 	QAction *end2D = new QAction(QIcon(":/icon/3d-cube.svg"), "Finish 2D", this);
 	end_2D = end2D;
-	connect(end_2D, &QAction::triggered, _view, &Env3D::end_2D);
+
 };
 
 
@@ -64,15 +63,26 @@ void MainWindow::create_toolbar() {
 void MainWindow::handle_change_dimension(int dim) {
 	switch (dim) {
 	case 2: {
+		disconnect(new_2D, &QAction::toggled, _view, &Env3D::new_2D);
+		new_2D->setChecked(false);
 		_bar->removeAction(new_2D);
+
 		_bar->addAction(end_2D);
+		connect(end_2D, &QAction::triggered, _view, &Env3D::end_2D);
+
 		_bar->addAction(new_line);
+		connect(new_line, &QAction::triggered, _view, &Env3D::new_line);
 		break;
 	}
 	case 3: {
+		disconnect(end_2D, &QAction::triggered, _view, &Env3D::end_2D);
 		_bar->removeAction(end_2D);
+
+		disconnect(new_line, &QAction::triggered, _view, &Env3D::new_line);
 		_bar->removeAction(new_line);
+
 		_bar->addAction(new_2D);
+		connect(new_2D, &QAction::toggled, _view, &Env3D::new_2D);
 		break;
 	}
 	default: break;

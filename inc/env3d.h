@@ -75,6 +75,7 @@ public:
 	void start_line(Qt3DRender::QPickEvent *pick);
 	void mid_line(Qt3DRender::QPickEvent *pick);
 	void end_line(Qt3DRender::QPickEvent *pick);
+	void rerender_as_patch(void);
 	void stop_line(void);
 
 signals:
@@ -115,14 +116,17 @@ private:
 	static Qt3DCore::QEntity* selection_buffer;
 	static Qt3DCore::QEntity* selected_buffer;
 
+	static QVector<QVector3D> line_pointv;
 	static Qt3DRender::QObjectPicker* _lineHandler;
 	static Qt3DCore::QEntity* line_buffer;
 	static Qt3DCore::QEntity* _square;
+	static Qt3DCore::QEntity* _pointSphere;
 
 	// Helpers
 	Mode mode;
 	Dim dim;
 	QVector3D line_start;
+	QVector3D last_point;
 	bool line_hasStart;
 };
 

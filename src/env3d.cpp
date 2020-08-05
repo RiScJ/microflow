@@ -51,9 +51,11 @@ Qt3DCore::QEntity *Env3D::_YZ = nullptr;
 Qt3DCore::QEntity* Env3D::selection_buffer = nullptr;
 Qt3DCore::QEntity* Env3D::selected_buffer = nullptr;
 
+QVector<QVector3D> Env3D::line_pointv;
 Qt3DRender::QObjectPicker* Env3D::_lineHandler = nullptr;
 Qt3DCore::QEntity* Env3D::line_buffer = new Qt3DCore::QEntity();
 Qt3DCore::QEntity* Env3D::_square = new Qt3DCore::QEntity();
+Qt3DCore::QEntity* Env3D::_pointSphere = nullptr;
 
 Env3D::Env3D(QWidget *parent) : QWidget(parent) {
 	mode = NONE;
@@ -82,6 +84,9 @@ Env3D::Env3D(QWidget *parent) : QWidget(parent) {
 	camController->setLookSpeed(360.0f);
 	camController->setCamera(_camera);
 
+	Qt3DRender::QPickingSettings pick_settings(_rootEntity);
+	pick_settings.setPickResultMode(Qt3DRender::QPickingSettings::NearestPriorityPick);
+
 	view->setRootEntity(_rootEntity);
 }
 
@@ -101,8 +106,10 @@ void Env3D::start_line(Qt3DRender::QPickEvent *pick) {
 	if (pick->button() == Qt3DRender::QPickEvent::LeftButton) {
 		QVector3D point = pick->worldIntersection();
 		point.setZ(0);
-		line_start = point;
-		draw_sphere(point, 1.0f);
+		line_pointv.append(point);
+
+		_pointSphere = draw_sphere(point, 1.0f);
+
 		_lineHandler->disconnect();
 		_square->removeComponent(_lineHandler);
 		_lineHandler->~QObjectPicker();
@@ -113,6 +120,18 @@ void Env3D::start_line(Qt3DRender::QPickEvent *pick) {
 		_square->addComponent(lineHandler);
 		_lineHandler = lineHandler;
 	}
+};
+
+
+void Env3D::rerender_as_patch(void) {
+	QVector<QVector3D> reshaped;
+	for (int i = 0; i < line_pointv.count() - 1; ++i) {
+		reshaped.append(line_pointv.at(0));
+		reshaped.append(line_pointv.at(i));
+		reshaped.append(line_pointv.at(i+1));
+		reshaped.append(line_pointv.at(0));
+	}
+	draw_patch(reshaped, reshaped.count(), Qt::green, 0.1f);
 };
 
 
@@ -130,8 +149,15 @@ void Env3D::end_line(Qt3DRender::QPickEvent *pick) {
 	if (pick->button() == Qt3DRender::QPickEvent::LeftButton) {
 		QVector3D point = pick->worldIntersection();
 		point.setZ(0);
-		draw_line(line_start, point, Qt::green);
-		line_start = point;
+		if (point.distanceToPoint(line_pointv.at(0)) < 1.0f) {
+			draw_line(line_pointv.last(), line_pointv.at(0), Qt::green);
+			rerender_as_patch();
+			_pointSphere->~QEntity();
+			stop_line();
+		} else {
+			draw_line(line_pointv.last(), point, Qt::green);
+			line_pointv.append(point);
+		}
 	}
 };
 
@@ -142,6 +168,7 @@ void Env3D::stop_line(void) {
 	_square->removeComponent(_lineHandler);
 	_lineHandler->~QObjectPicker();
 	_square->~QEntity();
+	line_pointv.clear();
 };
 
 

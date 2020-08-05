@@ -31,7 +31,10 @@ enum Mode {
 	LINE,
 	SQUARE,
 	GRID = 1000,
-	CARTESIAN
+	CARTESIAN,
+	GRIDXY,
+	GRIDXZ,
+	GRIDYZ
 };
 
 enum Axis {
@@ -65,17 +68,19 @@ public:
 	void entered_YZ(void);
 	void exited_YZ(void);
 	void selected_sketchplane(Qt3DRender::QPickEvent* pick);
-	void new_line(void);
-
 	void end_2D(void);
+	Qt3DCore::QEntity* draw_sphere(const QVector3D& center, const float radius);
+
+	void new_line(void);
 	void start_line(Qt3DRender::QPickEvent *pick);
 	void mid_line(Qt3DRender::QPickEvent *pick);
 	void end_line(Qt3DRender::QPickEvent *pick);
+	void stop_line(void);
 
 signals:
 	void entity_created(const QString& text, Qt3DCore::QEntity* entity, Mode drawMode);
 	void entity_unselected(void);
-	void destroy_grid(void);
+	void destroy_entities_of_type(Mode type);
 	void changed_dimension(int dim);
 	void disconnect_line(Qt3DRender::QObjectPicker* picker);
 

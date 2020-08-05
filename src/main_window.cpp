@@ -27,7 +27,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
 	connect(_view, &Env3D::entity_unselected, this, &MainWindow::handle_entity_unselection);
 	connect(this, &MainWindow::select_entity, _view, &Env3D::select_entity);
-	connect(_view, &Env3D::destroy_grid, this, &MainWindow::destroy_grid);
+	connect(_view, &Env3D::destroy_entities_of_type, this, &MainWindow::destroy_entities_of_type);
 	connect(_view, &Env3D::changed_dimension, this, &MainWindow::handle_change_dimension);
 
 	setCentralWidget(view);
@@ -88,6 +88,15 @@ void MainWindow::handle_change_dimension(int dim) {
 
 		_bar->addAction(new_2D);
 		connect(new_2D, &QAction::toggled, _view, &Env3D::new_2D);
+
+		for (int i = list->count() - 1; i >= 0; i--) {
+			if (list->item(i)->data(EntityTypeRole) == CARTESIAN) {
+				QEntity* entity = reinterpret_cast<QEntity*>(list->item(i)->data(NodePtrRole).value<void*>());
+				entity->~QEntity();
+				list->item(i)->~QListWidgetItem();
+			}
+		}
+
 		break;
 	}
 	default: break;
@@ -129,12 +138,14 @@ void MainWindow::add_entity(const QString &text, QEntity* entity, Mode drawMode)
 };
 
 
-void MainWindow::destroy_grid(void) {
-	for (int i = list->count() - 1; i >= 0; i--) {
-		if (list->item(i)->data(EntityTypeRole) == GRID) {
+void MainWindow::destroy_entities_of_type(Mode mode) {
+	for (int i = 0; i < list->count();) {
+		if (list->item(i)->data(EntityTypeRole) == mode) {
 			QEntity* entity = reinterpret_cast<QEntity*>(list->item(i)->data(NodePtrRole).value<void*>());
 			entity->~QEntity();
 			list->item(i)->~QListWidgetItem();
+		} else {
+			i++;
 		}
 	}
 };

@@ -19,7 +19,7 @@ public:
 	void add_entity(const QString& text, QEntity* entity, Mode drawMode);
 	void handle_entity_selection(QListWidgetItem* item);
 	void handle_entity_unselection();
-	void destroy_grid(void);
+	void destroy_entities_of_type(Mode mode);
 	void handle_change_dimension(int dim);
 signals:
 	void select_entity(QListWidgetItem* item);

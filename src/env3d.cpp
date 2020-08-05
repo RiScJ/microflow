@@ -102,6 +102,7 @@ void Env3D::start_line(Qt3DRender::QPickEvent *pick) {
 		QVector3D point = pick->worldIntersection();
 		point.setZ(0);
 		line_start = point;
+		draw_sphere(point, 1.0f);
 		_lineHandler->disconnect();
 		_square->removeComponent(_lineHandler);
 		_lineHandler->~QObjectPicker();
@@ -130,9 +131,18 @@ void Env3D::end_line(Qt3DRender::QPickEvent *pick) {
 		QVector3D point = pick->worldIntersection();
 		point.setZ(0);
 		draw_line(line_start, point, Qt::green);
+		line_start = point;
 	}
 };
 
+
+void Env3D::stop_line(void) {
+	QGuiApplication::restoreOverrideCursor();
+	_lineHandler->disconnect();
+	_square->removeComponent(_lineHandler);
+	_lineHandler->~QObjectPicker();
+	_square->~QEntity();
+};
 
 
 void Env3D::start_2D(Axis axis, float da) {
@@ -222,7 +232,11 @@ void Env3D::new_2D(bool checked) {
 
 
 void Env3D::selected_sketchplane(Qt3DRender::QPickEvent *pick) {
-	emit destroy_grid();
+	emit destroy_entities_of_type(GRIDXY);
+
+	emit destroy_entities_of_type(GRIDXZ);
+
+	emit destroy_entities_of_type(GRIDYZ);
 
 	_XY->setEnabled(false);
 	_XZ->setEnabled(false);
@@ -250,7 +264,7 @@ void Env3D::entered_XY(void) {
 	material->setAlpha(1.0f);
 	material->setAmbient(Z_AXIS_COLOR);
 	_XY->addComponent(material);
-	mode = GRID;
+	mode = GRIDXY;
 	create_grid(Z, 100, 10, 1, 1, 0);
 };
 
@@ -259,7 +273,7 @@ void Env3D::entered_XZ(void) {
 	material->setAlpha(1.0f);
 	material->setAmbient(Y_AXIS_COLOR);
 	_XZ->addComponent(material);
-	mode = GRID;
+	mode = GRIDXZ;
 	create_grid(Y, 100, 10, 1, 0, 1);
 };
 
@@ -268,7 +282,7 @@ void Env3D::entered_YZ(void) {
 	material->setAlpha(1.0f);
 	material->setAmbient(X_AXIS_COLOR);
 	_YZ->addComponent(material);
-	mode = GRID;
+	mode = GRIDYZ;
 	create_grid(X, 100, 10, 0, 1, 1);
 };
 
@@ -278,7 +292,7 @@ void Env3D::exited_XY(void) {
 	material->setAlpha(0.1f);
 	material->setAmbient(Z_AXIS_COLOR);
 	_XY->addComponent(material);
-	emit destroy_grid();
+	emit destroy_entities_of_type(GRIDXY);
 };
 
 void Env3D::exited_XZ(void) {
@@ -286,7 +300,7 @@ void Env3D::exited_XZ(void) {
 	material->setAlpha(0.1f);
 	material->setAmbient(Y_AXIS_COLOR);
 	_XZ->addComponent(material);
-	emit destroy_grid();
+	emit destroy_entities_of_type(GRIDXZ);
 };
 
 void Env3D::exited_YZ(void) {
@@ -294,7 +308,7 @@ void Env3D::exited_YZ(void) {
 	material->setAlpha(0.1f);
 	material->setAmbient(X_AXIS_COLOR);
 	_YZ->addComponent(material);
-	emit destroy_grid();
+	emit destroy_entities_of_type(GRIDYZ);
 };
 
 
@@ -311,6 +325,27 @@ void Env3D::createScene(void) {
 void Env3D::init_helpers(void) {
 	line_start = QVector3D(0, 0, 0);
 	line_hasStart = false;
+};
+
+
+Qt3DCore::QEntity* Env3D::draw_sphere(const QVector3D& center, const float radius) {
+	Qt3DExtras::QSphereMesh *sphereMesh = new Qt3DExtras::QSphereMesh;
+	sphereMesh->setRings(10);
+	sphereMesh->setSlices(10);
+	sphereMesh->setRadius(radius);
+
+	Qt3DCore::QTransform *sphereTransform = new Qt3DCore::QTransform;
+	sphereTransform->setTranslation(center);
+
+	Qt3DExtras::QPhongMaterial *sphereMaterial = new Qt3DExtras::QPhongMaterial(_rootEntity);
+	sphereMaterial->setAmbient(Qt::red);
+
+	Qt3DCore::QEntity* sphereEntity = new Qt3DCore::QEntity(_rootEntity);
+	sphereEntity->addComponent(sphereMesh);
+	sphereEntity->addComponent(sphereMaterial);
+	sphereEntity->addComponent(sphereTransform);
+
+	return sphereEntity;
 };
 
 

@@ -15,6 +15,10 @@ QToolBar* MainWindow::_bar = nullptr;
 QAction* MainWindow::new_2D = nullptr;
 QAction* MainWindow::new_line = nullptr;
 QAction* MainWindow::end_2D = nullptr;
+QAction* MainWindow::_extrude = nullptr;
+
+//QListWidget* MainWindow::_list_face = new QListWidget();// This will cause crash at runtime -- lesson learned, leave time for QApplication init
+QListWidget* MainWindow::_list_face = nullptr;
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	Env3D *view = new Env3D();
@@ -29,6 +33,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	connect(this, &MainWindow::select_entity, _view, &Env3D::select_entity);
 	connect(_view, &Env3D::destroy_entities_of_type, this, &MainWindow::destroy_entities_of_type);
 	connect(_view, &Env3D::changed_dimension, this, &MainWindow::handle_change_dimension);
+	connect(_view, &Env3D::register_face, this, &MainWindow::add_face);
+	connect(_view, &Env3D::face_to_pointv, this, &MainWindow::face_to_pointv);
+	connect(this, &MainWindow::do_extrude, _view, &Env3D::do_extrude);
 
 	setCentralWidget(view);
 };
@@ -40,7 +47,13 @@ void MainWindow::create_actions(void) {
 	new_2D->setCheckable(true);
 	connect(new_2D, &QAction::toggled, _view, &Env3D::new_2D);
 
+	QAction *extrude = new QAction(QIcon(":/icon/export.svg"), "Extrude", this);
+	_extrude = extrude;
+	_extrude->setCheckable(true);
+	connect(_extrude, &QAction::toggled, _view, &Env3D::sig_extrude);
+
 	QAction *drawLine = new QAction(QIcon(":/icon/line.svg"), "Line", this);
+	drawLine->setCheckable(true);
 	new_line = drawLine;
 
 	QAction *end2D = new QAction(QIcon(":/icon/3d-cube.svg"), "Finish 2D", this);
@@ -62,6 +75,7 @@ void MainWindow::create_toolbar() {
 	bar->setIconSize(QSize(40, 40));
 	_bar = bar;
 	_bar->addAction(new_2D);
+	_bar->addAction(_extrude);
 };
 
 
@@ -72,22 +86,30 @@ void MainWindow::handle_change_dimension(int dim) {
 		new_2D->setChecked(false);
 		_bar->removeAction(new_2D);
 
+		disconnect(_extrude, &QAction::toggled, _view, &Env3D::sig_extrude);
+		_extrude->setChecked(false);
+		_bar->removeAction(_extrude);
+
 		_bar->addAction(end_2D);
 		connect(end_2D, &QAction::triggered, _view, &Env3D::end_2D);
 
 		_bar->addAction(new_line);
-		connect(new_line, &QAction::triggered, _view, &Env3D::new_line);
+		connect(new_line, &QAction::toggled, _view, &Env3D::new_line);
 		break;
 	}
 	case 3: {
 		disconnect(end_2D, &QAction::triggered, _view, &Env3D::end_2D);
 		_bar->removeAction(end_2D);
 
-		disconnect(new_line, &QAction::triggered, _view, &Env3D::new_line);
+		disconnect(new_line, &QAction::toggled, _view, &Env3D::new_line);
+		new_line->setChecked(false);
 		_bar->removeAction(new_line);
 
 		_bar->addAction(new_2D);
 		connect(new_2D, &QAction::toggled, _view, &Env3D::new_2D);
+
+		_bar->addAction(_extrude);
+		connect(_extrude, &QAction::toggled, _view, &Env3D::sig_extrude);
 
 		for (int i = list->count() - 1; i >= 0; i--) {
 			if (list->item(i)->data(EntityTypeRole) == CARTESIAN) {
@@ -105,6 +127,8 @@ void MainWindow::handle_change_dimension(int dim) {
 
 
 void MainWindow::create_dockwidget() {
+	_list_face = new QListWidget;
+
 	dockWidget = new QDockWidget(tr("Entities"), this);
 	dockWidget->setAllowedAreas(Qt::LeftDockWidgetArea);
 	QListWidget* mylist = new QListWidget(dockWidget);
@@ -113,6 +137,26 @@ void MainWindow::create_dockwidget() {
 	addDockWidget(Qt::LeftDockWidgetArea, dockWidget);
 	connect(_view, &Env3D::entity_created, this, &MainWindow::add_entity);
 	connect(list, &QListWidget::itemClicked, this, &MainWindow::handle_entity_selection);
+};
+
+
+void MainWindow::add_face(QEntity *face, QVector<QVector3D>* pointv) {
+	QListWidgetItem* face_item = new QListWidgetItem();
+	face_item->setData(NodePtrRole, QVariant::fromValue(reinterpret_cast<void*>(face)));
+	face_item->setData(PointvPtrRole, QVariant::fromValue(reinterpret_cast<void*>(pointv)));
+	_list_face->addItem(face_item);
+};
+
+
+void MainWindow::face_to_pointv(Qt3DCore::QEntity *face) {
+	for (int i = 0; i < _list_face->count(); i++) {
+		QEntity* test_face = reinterpret_cast<QEntity*>(_list_face->item(i)->data(NodePtrRole).value<void*>());
+		if (test_face == face) {
+			QVector<QVector3D>* pointv = reinterpret_cast<QVector<QVector3D>*>(_list_face->item(i)->data(PointvPtrRole).value<void*>());
+			qDebug() << pointv->count();
+//			emit do_extrude(pointv);
+		}
+	}
 };
 
 

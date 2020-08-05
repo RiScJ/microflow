@@ -9,13 +9,15 @@
 #include <QListWidgetItem>
 #include <QPickEvent>
 #include <Qt3DInput/QMouseHandler>
+#include <QInputDialog>
 
 #define PI 3.14159265358979323846264
 
 
 enum ItemDataRole {
 	NodePtrRole = 0x0101,
-	EntityTypeRole = 0x0102
+	EntityTypeRole = 0x0102,
+	PointvPtrRole
 };
 
 enum Dim {
@@ -30,6 +32,7 @@ enum Mode {
 	POINT,
 	LINE,
 	SQUARE,
+	EXTRUDE,
 	GRID = 1000,
 	CARTESIAN,
 	GRIDXY,
@@ -71,12 +74,18 @@ public:
 	void end_2D(void);
 	Qt3DCore::QEntity* draw_sphere(const QVector3D& center, const float radius);
 
-	void new_line(void);
+	void new_line(bool checked);
 	void start_line(Qt3DRender::QPickEvent *pick);
 	void mid_line(Qt3DRender::QPickEvent *pick);
 	void end_line(Qt3DRender::QPickEvent *pick);
 	void rerender_as_patch(void);
 	void stop_line(void);
+
+	void sig_extrude(bool checked);
+	void extrude_face(Qt3DRender::QPickEvent* pick);
+	void do_extrude(QVector<QVector3D>* pointv);
+
+	Qt3DCore::QEntity* draw_rectangle(const QVector3D& one, const QVector3D& two, const float* dz, const QColor& color, const float& alpha = 0);
 
 signals:
 	void entity_created(const QString& text, Qt3DCore::QEntity* entity, Mode drawMode);
@@ -84,6 +93,8 @@ signals:
 	void destroy_entities_of_type(Mode type);
 	void changed_dimension(int dim);
 	void disconnect_line(Qt3DRender::QObjectPicker* picker);
+	void register_face(Qt3DCore::QEntity* face, QVector<QVector3D>* pointv);
+	void face_to_pointv(Qt3DCore::QEntity* face);
 
 protected:
 
@@ -128,6 +139,17 @@ private:
 	QVector3D line_start;
 	QVector3D last_point;
 	bool line_hasStart;
+
+
+
+
+
+
+	QVector<QVector3D>* extrudev;
+
+
+
+
 };
 
 #endif // ENV3D_H

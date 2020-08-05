@@ -21,8 +21,11 @@ public:
 	void handle_entity_unselection();
 	void destroy_entities_of_type(Mode mode);
 	void handle_change_dimension(int dim);
+	void add_face(QEntity* face, QVector<QVector3D>* pointv);
+	void face_to_pointv(Qt3DCore::QEntity* face);
 signals:
 	void select_entity(QListWidgetItem* item);
+	void do_extrude(QVector<QVector3D>* pointv);
 private:
 	void create_menubar(void);
 	void create_toolbar(void);
@@ -36,7 +39,10 @@ private:
 	static QAction* new_2D;
 	static QAction* new_line;
 	static QAction* end_2D;
-//	static QAction* something;
+	static QAction* _extrude;
+
+
+	static QListWidget* _list_face;
 };
 
 #endif // MAIN_WINDOW_H

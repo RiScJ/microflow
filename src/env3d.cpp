@@ -91,14 +91,18 @@ Env3D::Env3D(QWidget *parent) : QWidget(parent) {
 }
 
 
-void Env3D::new_line(void) {
-	QGuiApplication::setOverrideCursor(QCursor(Qt::CrossCursor));
-	Qt3DRender::QObjectPicker* lineHandler = new Qt3DRender::QObjectPicker(_rootEntity);
-	Qt3DCore::QEntity* square = draw_square(XY, QVector3D(-100,-100,0), QVector3D(100,100,0), Z_AXIS_COLOR, 0.0f);
-	square->addComponent(lineHandler);
-	connect(lineHandler, &Qt3DRender::QObjectPicker::clicked, this, &Env3D::start_line);
-	_lineHandler = lineHandler;
-	_square = square;
+void Env3D::new_line(bool checked) {
+	if (checked) {
+		QGuiApplication::setOverrideCursor(QCursor(Qt::CrossCursor));
+		Qt3DRender::QObjectPicker* lineHandler = new Qt3DRender::QObjectPicker(_rootEntity);
+		Qt3DCore::QEntity* square = draw_square(XY, QVector3D(-100,-100,0), QVector3D(100,100,0), Z_AXIS_COLOR, 0.0f);
+		square->addComponent(lineHandler);
+		connect(lineHandler, &Qt3DRender::QObjectPicker::clicked, this, &Env3D::start_line);
+		_lineHandler = lineHandler;
+		_square = square;
+	} else {
+		stop_line();
+	}
 };
 
 
@@ -131,7 +135,71 @@ void Env3D::rerender_as_patch(void) {
 		reshaped.append(line_pointv.at(i+1));
 		reshaped.append(line_pointv.at(0));
 	}
-	draw_patch(reshaped, reshaped.count(), Qt::green, 0.1f);
+	Qt3DCore::QEntity* patch = draw_patch(reshaped, reshaped.count(), Qt::green, 0.1f);
+
+	Qt3DRender::QObjectPicker* pickPatch = new Qt3DRender::QObjectPicker();
+	pickPatch->setHoverEnabled(true);
+	patch->addComponent(pickPatch);
+	connect(pickPatch, &Qt3DRender::QObjectPicker::clicked, this, &Env3D::extrude_face);
+
+	QVector<QVector3D>* pointv = new QVector<QVector3D>;
+	pointv = &line_pointv;
+	emit register_face(patch, pointv);
+};
+
+
+void Env3D::extrude_face(Qt3DRender::QPickEvent *pick) {
+	if (mode == EXTRUDE) {
+//		emit face_to_pointv(pick->entity());
+		// This is a super cursed hacky hypertemporary workaround for visual demo
+		// don't do this. please. what...
+		do_extrude(&line_pointv);
+	}
+};
+
+
+void Env3D::do_extrude(QVector<QVector3D>* pointv) {
+	bool ok;
+	double d = QInputDialog::getDouble(this, tr("Extrude"),
+									   tr("dz:"), 0, -100, 100, 2, &ok,
+									   Qt::WindowFlags(), 1);
+	if (ok) {
+		QVector<QVector3D> dual_pointv;
+		QVector3D temp;
+		for (int i = 0; i < pointv->count(); i++) {
+			temp = *&pointv->at(i);
+			qDebug() << temp;
+			temp.setZ(temp.z() + d);
+			dual_pointv.append(temp);
+			draw_line(pointv->at(i), temp, Qt::green);
+		}
+
+		QVector<QVector3D> tempv;
+		for (int i = 0; i < dual_pointv.count() - 1; ++i) {
+			tempv.append(dual_pointv.at(0));
+			tempv.append(dual_pointv.at(i));
+			tempv.append(dual_pointv.at(i+1));
+			tempv.append(dual_pointv.at(0));
+		}
+		draw_patch(tempv, tempv.count(), Qt::green, 0.1f);
+		tempv.clear();
+
+		for (int i = 0; i < pointv->count(); i++) {
+			int j = (i + 1) % pointv->count();
+			tempv.append(pointv->at(i));
+			tempv.append(dual_pointv.at(i));
+			tempv.append(dual_pointv.at(j));
+			tempv.append(pointv->at(i));
+
+			tempv.append(pointv->at(i));
+			tempv.append(dual_pointv.at(j));
+			tempv.append(pointv->at(j));
+			tempv.append(pointv->at(i));
+
+			draw_patch(tempv, tempv.count(), Qt::green, 0.1f);
+			tempv.clear();
+		}
+	}
 };
 
 
@@ -168,7 +236,16 @@ void Env3D::stop_line(void) {
 	_square->removeComponent(_lineHandler);
 	_lineHandler->~QObjectPicker();
 	_square->~QEntity();
-	line_pointv.clear();
+//	line_pointv.clear();
+};
+
+
+void Env3D::sig_extrude(bool checked) {
+	if (checked){
+		mode = EXTRUDE;
+	} else {
+		mode = NONE;
+	}
 };
 
 
@@ -510,6 +587,25 @@ Qt3DCore::QEntity* Env3D::draw_line(const QVector3D& start, const QVector3D& end
 	emit entity_created("line", lineEntity, mode);
 	return lineEntity;
 }
+
+
+Qt3DCore::QEntity* Env3D::draw_rectangle(const QVector3D &one, const QVector3D &two, const float* dz, const QColor &color, const float &alpha) {
+	QVector3D three, four;
+	three.setZ(two.z() + *dz);
+	four.setZ(one.z() + *dz);
+
+	QVector<QVector3D> points;
+	points.append(one);
+	points.append(two);
+	points.append(three);
+	points.append(one);
+	points.append(one);
+	points.append(three);
+	points.append(four);
+	points.append(one);
+
+	return draw_patch(points, points.count(), color, alpha);
+};
 
 
 Qt3DCore::QEntity* Env3D::draw_patch(const QVector<QVector3D> pointv, const int pointc, const QColor &color, const float& alpha) {
